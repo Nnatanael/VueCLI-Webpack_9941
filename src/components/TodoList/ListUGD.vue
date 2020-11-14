@@ -16,63 +16,72 @@
                     Tambah
                 </v-btn>
             </v-card-title>
-            <v-data-table :headers="headers" :items="todos" :search="search" :single-expand="singleExpand"  
-            :expanded.sync="expanded" item-key="task" show-expand>
+            <v-data-table 
+                :headers="headers" 
+                :items="todos" 
+                :search="search" 
+                item-key="task"
+                show-expand
+            >
                 <template v-slot:[`item.actions`]="{ item }">
                     <v-btn small class="mr-2" @click="editItem(item)">
                         edit
                     </v-btn>
-                    <v-btn small @click="deleteItem(item)">
+                    <v-btn small @click="showDeleteDialog(item)">
                         delete
                     </v-btn>
                 </template>
 
+                <!-- WARNA PRIORITY -->
                 <template v-slot:[`item.priority`]="{ item }">
                     <v-chip v-if="item.priority == 'Penting'" color="red" outlined>{{item.priority}}</v-chip>
-                    <v-chip v-else-if="item.priority == 'Tidak penting'" color="green" outlined>{{item.priority}}</v-chip>
-                    <v-chip v-else-if="item.priority == 'Biasa'" color="blue" outlined>{{item.priority}}</v-chip>
-                </template>
-
-                <template v-slot:expanded-item="{ headers, item }">
-                    <td :colspan="headers.length">
-                        <div align="left">{{ item.note }}</div>
-                    </td>
+                    <v-chip v-if="item.priority == 'Tidak penting'" color="green" outlined>{{item.priority}}</v-chip>
+                    <v-chip v-if="item.priority == 'Biasa'" color="blue" outlined>{{item.priority}}</v-chip>
                 </template>
 
             </v-data-table>
         </v-card>
 
-        <v-dialog v-model="dialogEdit" persistent max-width="600px">
-      <v-card>
-        <v-card-title>
-          <span class="headline">Form Todo</span>
-        </v-card-title>
-        <v-card-text>
-          <v-container>
-            <v-text-field
-              v-model="formTodoEdit.task"
-              label="Task"
-              required
-              :value="itemContent.task"
-            ></v-text-field>
-            <v-select
-              v-model="formTodoEdit.priority"
-              :items="['Penting', 'Biasa', 'Tidak penting']"
-              label="Priority"
-              required
-            ></v-select>
-            <v-textarea v-model="formTodoEdit.note" label="Note" required>{{
-              itemContent.note
-            }}</v-textarea>
-          </v-container>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="cancel"> Cancel </v-btn>
-          <v-btn color="blue darken-1" text @click="saveEdit"> Save </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        <!-- DIALOG FORM -->
+        <v-dialog v-model="dialog" persistent max-width="600px">
+            <v-card>
+                <v-card-title>
+                    <span class="headline">Form Todo</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-container>
+                        <v-text-field
+                            v-model="formTodo.task"
+                            label="Task"
+                            required>
+                        </v-text-field>
+
+                        <v-select
+                            v-model="formTodo.priority"
+                            :items="['Penting', 'Biasa', 'Tidak penting']"
+                            label="Priority"
+                            required>
+                        </v-select>
+
+                        <v-textarea
+                            v-model="formTodo.note"
+                            label="Note"
+                            required>
+                        </v-textarea>
+                    </v-container>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="blue darken-1" text @click="cancel">
+                        Cancel
+                    </v-btn >
+                    <v-btn v-if="editing == 0" color="blue darken-1" text @click="save">
+                        Save
+                    </v-btn>
+                    <v-btn v-if="editing == 1" text @click="saveEdit(item)">Save</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
 
         <!-- DIALOG DELETE -->
         <v-dialog v-model="dialogDelete" max-width="400px">
@@ -99,7 +108,6 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
-
     </v-main>
 </template>
 
@@ -112,8 +120,9 @@ export default {
             dialog: false,
             index: null,
             dialogDelete: false,
-          
+            editing: 0,
             headers: [
+                { text:  '', value: 'data-table-expand' },
                 {
                     text: "Task",
                     align: "start",
@@ -121,7 +130,6 @@ export default {
                     value: "task",
                 },
                 { text: "Priority", value: "priority" },
-                { text: "Note", value: "note" },
                 { text: "Actions", value: "actions" },
             ],
             todos: [
@@ -150,8 +158,14 @@ export default {
     },
     methods: {
         save() {
-            this.todos.push(this.formTodo);
+            if (this.index != null) {
+                Object.assign(this.todos[this.index], this.formTodo)
+            } else {
+                this.todos.push(this.formTodo)
+            }
+
             this.resetForm();
+            this.index = null;
             this.dialog = false;
         },
         saveEdit(item) {
@@ -172,11 +186,6 @@ export default {
                 note: null,
             };
         },
-         deleteItem() {
-            this.todos.splice(this.index, 1);
-            this.dialogDelete = false;
-            this.index = null;
-        },
         editItem(item) {
             this.dialog = true
             this.index = this.todos.indexOf(item)
@@ -186,6 +195,11 @@ export default {
             this.index = this.todos.indexOf(item);
             this.dialogDelete = true;
         },
+        deleteItem() {
+            this.todos.splice(this.index, 1);
+            this.dialogDelete = false;
+            this.index = null;
+        },
     },
 };
-</script> 
+</script>
